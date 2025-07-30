@@ -1,7 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-Future<String> Chatbot(String usertext) async {
+Future<String> chatbot(String usertext) async {
   final response = await http.post(
     Uri.parse(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDlq1R73oBp1lRsV5ZdAZoSY8xdClCgpQI',
