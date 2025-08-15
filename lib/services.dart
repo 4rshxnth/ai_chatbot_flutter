@@ -4,7 +4,7 @@ import 'dart:convert';
 Future<String> chatbot(String usertext) async {
   final response = await http.post(
     Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyDlq1R73oBp1lRsV5ZdAZoSY8xdClCgpQI',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=_ADD_YOUR_API_KEY',
     ),
     headers: {"Content-Type": "application/json"},
     body: jsonEncode({
