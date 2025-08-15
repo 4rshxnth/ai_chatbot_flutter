@@ -27,14 +27,79 @@ class _ChatbotState extends State<Chatbot> {
     });
 
     final reply = await chatbot(userInput);
+    final cleanedReply = _cleanMarkdown(reply);
 
     setState(() {
-      response = reply;
+      response = cleanedReply;
       messages.add({'sender': 'bot', 'text': response});
       Loading = false;
     });
 
     send.clear();
+  }
+
+  /// Cleans up markdown formatting by fixing incomplete bold and removing bad asterisks
+  String _cleanMarkdown(String text) {
+    // Fix incomplete bold like "**Hello" → "**Hello**"
+    String fixedBold = text.replaceAllMapped(RegExp(r'\*\*(\w+)(?!\*\*)'), (
+      match,
+    ) {
+      return '**${match.group(1)}**';
+    });
+
+    // Remove single '*' that is not part of italic formatting
+    String cleanedSingles = fixedBold.replaceAllMapped(
+      RegExp(r'(^|\s)\*(?!\S)|\*(?=\s|$)'),
+      (match) {
+        return match.group(1) ?? '';
+      },
+    );
+
+    return cleanedSingles;
+  }
+
+  /// Parses markdown for **bold** and *italic*
+  List<TextSpan> _parseMarkdown(String text) {
+    final cleanedText = _cleanMarkdown(text);
+    final List<TextSpan> spans = [];
+
+    // Match **bold**, *italic*, or normal text
+    final RegExp markdownRegex = RegExp(r'(\*\*(.*?)\*\*|\*(.*?)\*)');
+    int currentIndex = 0;
+
+    for (final match in markdownRegex.allMatches(cleanedText)) {
+      if (match.start > currentIndex) {
+        spans.add(
+          TextSpan(text: cleanedText.substring(currentIndex, match.start)),
+        );
+      }
+
+      if (match.group(2) != null) {
+        // Bold text
+        spans.add(
+          TextSpan(
+            text: match.group(2),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        );
+      } else if (match.group(3) != null) {
+        // Italic text
+        spans.add(
+          TextSpan(
+            text: match.group(3),
+            style: const TextStyle(fontStyle: FontStyle.italic),
+          ),
+        );
+      }
+
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < cleanedText.length) {
+      spans.add(TextSpan(text: cleanedText.substring(currentIndex)));
+    }
+
+    return spans;
   }
 
   @override
@@ -44,13 +109,13 @@ class _ChatbotState extends State<Chatbot> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         leading: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: CircleAvatar(backgroundImage: AssetImage('assets/avatar.png')),
+          padding: const EdgeInsets.all(8.0),
+          child: CircleAvatar(
+            backgroundImage: AssetImage('assets/chatbot_logo.png'),
+          ),
         ),
         actions: [
           Icon(Icons.settings, color: Colors.white, size: 30),
-          SizedBox(width: 20),
-          Icon(Icons.more_vert, color: Colors.white, size: 30),
           SizedBox(width: 20),
         ],
       ),
@@ -91,9 +156,17 @@ class _ChatbotState extends State<Chatbot> {
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(50),
                           ),
-                          child: Text(
-                            msg['text']!,
-                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          child: RichText(
+                            text: TextSpan(
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: isUser
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                              children: _parseMarkdown(msg['text']!),
+                            ),
                           ),
                         ),
                       );
